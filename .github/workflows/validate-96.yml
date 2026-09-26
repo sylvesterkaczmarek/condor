@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.9', '3.12']
+        python: ['3.11', '3.12']
     env:
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -42,4 +42,36 @@ jobs:
         if: always()
         with:
           name: condor-96-${{ matrix.python }}-eaae310510675d6ba624c3d0cace56d2b6b5caf4
+          path: validation-logs
+
+  python39-baseline:
+    name: Compare Python 3.9 with upstream
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: validation
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: eaae310510675d6ba624c3d0cace56d2b6b5caf4
+          fetch-depth: 0
+          path: source
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.9'
+      - run: python -m pip install -e ./source pytest
+      - name: Confirm unchanged upstream failures and run all field tests
+        env:
+          SOURCE: ${{ github.workspace }}/source
+          LOGS: ${{ github.workspace }}/validation-logs
+          BASE: 30718f32d2a0d6d6920943508bec20afeae073df
+        run: python validation/ci/validation-96/compare-python39.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: python39-upstream-comparison-eaae310510675d6ba624c3d0cace56d2b6b5caf4
           path: validation-logs
